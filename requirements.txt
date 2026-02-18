@@ -1,0 +1,12 @@
+# AutoScience: automated scientific research platform
+# Core data and visualization
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+# Reproducible notebook generation
+nbformat>=5.9.0
+# PDF parsing
+PyPDF2>=3.0.0
+# LLM providers (use one or both)
+openai>=1.0.0
+anthropic>=0.18.0
