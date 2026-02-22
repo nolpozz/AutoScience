@@ -145,3 +145,30 @@ python run_autoscience.py -p oncology_study --no-codex
 - If you see `codex command not found`, install Codex and ensure it is available on your `PATH`.
 - If no research question is entered, you can edit `projects/[project_name]/research_question.md` manually and rerun.
 - Rerunning the same project updates existing artifacts rather than creating a new project.
+
+## How To Upload Data
+
+When `run_autoscience.py` pauses and asks you to upload data, copy your files into:
+
+- `projects/[project_name]/data/`
+
+You can do this with either:
+
+- a file explorer (drag and drop), or
+- a terminal command.
+
+Linux/macOS example:
+
+```bash
+cp /path/to/my_data.csv /path/to/AutoScience/projects/my_experiment/data/
+cp /path/to/paper.pdf /path/to/AutoScience/projects/my_experiment/data/
+```
+
+Windows PowerShell example:
+
+```powershell
+Copy-Item "C:\path\to\my_data.csv" "C:\path\to\AutoScience\projects\my_experiment\data\"
+Copy-Item "C:\path\to\paper.pdf" "C:\path\to\AutoScience\projects\my_experiment\data\"
+```
+
+After copying files, return to the script prompt and press Enter to continue.
