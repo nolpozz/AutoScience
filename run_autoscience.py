@@ -21,21 +21,49 @@ _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from core.project_manager import ProjectManager, get_project_path
+from core.project_manager import ProjectManager
 from core.codex_runner import run_codex
 
 
-CODEX_PROMPT = """You are an AI research assistant for AutoScience. Your task is to analyze the user's dataset with respect to their research question.
+def build_codex_prompt(project_name: str, project_path: Path) -> str:
+    agents_path = _ROOT / "agents"
+    reporting_path = project_path / "reporting"
+    notebook_name = f"{project_name}_reproducable.ipynb"
+    return f"""You are an AI research assistant for AutoScience. Your task is to analyze the user's dataset with respect to their research question.
 
-You are running in the project directory. Follow this pipeline:
+Run scope (must be used consistently for every agent and artifact):
+- Project root: {project_path}
+- Research question: {project_path / "research_question.md"}
+- Data directory: {project_path / "data"}
+- Analysis scripts directory: {project_path / "analysis_scripts"}
+- Visualization scripts directory: {project_path / "visualization_scripts"}
+- Reporting directory: {reporting_path}
+- Agent instruction directory: {agents_path}
 
-1. Read research_question.md for the goal and constraints.
-2. Parse and document data in the data/ folder (PDFs, CSVs). Identify schema and write it under data/.
-3. Write and run analysis scripts in analysis_scripts/. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
-4. Write and run visualization scripts in visualization_scripts/. Produce figures and save them (e.g. in reporting/figures/ or visualization_scripts/output/).
-5. Write report.md and a reproducible .ipynb in reporting/, using the analysis logs and figures. The notebook must contain all successful code from the script folders.
+Before doing anything else:
+1. Read {agents_path / "orchestrator.md"}.
+2. Read {agents_path / "data_architect.md"}.
+3. Read {agents_path / "analyst_and_visualizer.md"}.
+4. Read {agents_path / "scientific_writer.md"}.
+5. Read {project_path / "research_question.md"}.
 
-Use the agent instructions in the repository's agents/ folder (orchestrator, data_architect, analyst_and_visualizer, scientific_writer) for detailed behavior.
+Pipeline requirements:
+1. Parse and document data in data/. Identify schema and write it under data/.
+2. Write and run analysis scripts in analysis_scripts/. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
+3. Write and run visualization scripts in visualization_scripts/. Produce figures and save them in stable paths.
+4. Write report.md in reporting/.
+5. Create the reproducable notebook in reporting/ with this exact filename:
+   - {notebook_name}
+6. The notebook must include all successful code from analysis_scripts/ and visualization_scripts/.
+7. Interleave markdown and code cells throughout the notebook: every section of code must have adjacent markdown that explains:
+   - what the code is doing,
+   - why this approach was chosen,
+   - and alternative choices that could have been made.
+
+Critical consistency rules:
+- Every path used by every agent must stay under this project root: {project_path}
+- Do not use artifacts from any other project.
+- Keep outputs reproducible with relative paths from project root where possible.
 
 When everything is complete, write <<DONE>>"""
 
@@ -74,6 +102,7 @@ def main():
         sys.exit(1)
 
     path = manager.ensure()
+    project_name = path.name
     print(f"Project ready: {path}")
     print("  research_question.md")
     print("  data/")
@@ -92,15 +121,15 @@ def main():
         if use != "y":
             print("Keeping existing research question.")
         else:
-            question = input("Enter your research question (goal and constraints):\n> ")
+            question = input(f"Enter your research question for projects/{project_name} (goal and constraints):\n> ")
             if question.strip():
                 rq_path.write_text(f"# Research question\n\n{question.strip()}\n", encoding="utf-8")
-                print("Saved to research_question.md")
+                print(f"Saved to projects/{project_name}/research_question.md")
     else:
-        question = input("Enter your research question (goal and constraints):\n> ")
+        question = input(f"Enter your research question for projects/{project_name} (goal and constraints):\n> ")
         if question.strip():
             rq_path.write_text(f"# Research question\n\n{question.strip()}\n", encoding="utf-8")
-            print("Saved to research_question.md")
+            print(f"Saved to projects/{project_name}/research_question.md")
         else:
             print("No question entered; you can edit research_question.md later.")
 
@@ -122,8 +151,9 @@ def main():
     print("Calling Codex to process data and run the analysis...")
     print("(Output will stream below; this may take several minutes.)")
     print()
+    codex_prompt = build_codex_prompt(project_name=project_name, project_path=path)
     try:
-        stdout, stderr = run_codex(CODEX_PROMPT, cwd=path)
+        stdout, stderr = run_codex(codex_prompt, cwd=path)
     except FileNotFoundError:
         print("Error: 'codex' command not found. Install Codex or ensure it is on your PATH.", file=sys.stderr)
         sys.exit(1)
