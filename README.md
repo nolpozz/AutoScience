@@ -94,7 +94,6 @@ Optional flags:
 
 After a typical run, your project may look like:
 
-```text
 projects/
 └── my_experiment/
     ├── research_question.md
