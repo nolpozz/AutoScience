@@ -51,7 +51,8 @@ AutoScience uses prompt instructions in `agents/`:
 
 - `orchestrator.md`: manages pipeline state and handoffs
 - `data_architect.md`: parses/cleans data and writes schema artifacts
-- `analyst_and_visualizer.md`: runs/fixes analysis + visualization scripts
+- `variable_selector.md`: selects relevant variables for the research question; writes `analysis_scripts/selected_variables.md`
+- `analyst_and_visualizer.md`: runs/fixes analysis + visualization scripts using selected variables
 - `scientific_writer.md`: assembles `report.md` and reproducable notebook
 
 All agents are instructed to stay inside the same selected project root for a run.
@@ -104,6 +105,7 @@ projects/
     │   ├── schema.md
     │   └── cleaning_log.md
     ├── analysis_scripts/
+    │   ├── selected_variables.md
     │   ├── 01_load_and_validate.py
     │   ├── 02_model_and_metrics.py
     │   └── run_log.txt

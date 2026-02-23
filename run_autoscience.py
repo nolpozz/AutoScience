@@ -43,19 +43,21 @@ Run scope (must be used consistently for every agent and artifact):
 Before doing anything else:
 1. Read {agents_path / "orchestrator.md"}.
 2. Read {agents_path / "data_architect.md"}.
-3. Read {agents_path / "analyst_and_visualizer.md"}.
-4. Read {agents_path / "scientific_writer.md"}.
-5. Read {project_path / "research_question.md"}.
+3. Read {agents_path / "variable_selector.md"}.
+4. Read {agents_path / "analyst_and_visualizer.md"}.
+5. Read {agents_path / "scientific_writer.md"}.
+6. Read {project_path / "research_question.md"}.
 
 Pipeline requirements:
 1. Parse and document data in data/. Identify schema and write it under data/.
-2. Write and run analysis scripts in analysis_scripts/. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
-3. Write and run visualization scripts in visualization_scripts/. Produce figures and save them in stable paths.
-4. Write report.md in reporting/.
-5. Create the reproducable notebook in reporting/ with this exact filename:
+2. Run the Variable Selector: review parsed/cleaned data and research question, select relevant variables, write analysis_scripts/selected_variables.md with variable names, descriptions, rationale, and usage examples.
+3. Write and run analysis scripts in analysis_scripts/, using the variables in selected_variables.md. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
+4. Write and run visualization scripts in visualization_scripts/. Produce figures and save them in stable paths.
+5. Write report.md in reporting/.
+6. Create the reproducable notebook in reporting/ with this exact filename:
    - {notebook_name}
-6. The notebook must include all successful code from analysis_scripts/ and visualization_scripts/.
-7. Interleave markdown and code cells throughout the notebook: every section of code must have adjacent markdown that explains:
+7. The notebook must include all successful code from analysis_scripts/ and visualization_scripts/.
+8. Interleave markdown and code cells throughout the notebook: every section of code must have adjacent markdown that explains:
    - what the code is doing,
    - why this approach was chosen,
    - and alternative choices that could have been made.

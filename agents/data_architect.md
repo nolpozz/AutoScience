@@ -29,4 +29,4 @@ You own the **/data** directory for each AutoScience project. Your focus is inge
 - `schema.md` or `schema.json` (or equivalent) describing all datasets used for analysis.
 - Optional: `cleaning_log.md`, `parsing_errors.md` for traceability.
 
-When the Data Architect phase is complete, the Orchestrator will move the pipeline to "Running Analysis."
+When the Data Architect phase is complete, the Orchestrator will move the pipeline to "Selecting Variables." The Variable Selector will then choose relevant variables from the schema for the research question.
