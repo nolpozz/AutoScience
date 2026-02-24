@@ -1,6 +1,6 @@
 # AutoScience core: agent loop, file I/O, LLM calls, code execution
 
-from .project_manager import ProjectManager, get_project_path
+from .project_manager import ProjectManager, get_project_path, clear_and_rerun_project
 from .code_runner import CodeRunner, RunResult
 from .pipeline_state import (
     VALID_STATES,
@@ -13,6 +13,7 @@ from .pipeline_state import (
 __all__ = [
     "ProjectManager",
     "get_project_path",
+    "clear_and_rerun_project",
     "CodeRunner",
     "RunResult",
     "VALID_STATES",

@@ -1,9 +1,13 @@
 """
-Project manager: creates and validates the project-centric folder structure.
+Project manager: creates and validates the project-centric folder structure,
+and provides helpers for managing project lifecycles.
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
+import shutil
+
+from .codex_runner import run_codex
 
 # Default root for projects (relative to this file's parent's parent)
 DEFAULT_PROJECTS_ROOT = Path(__file__).resolve().parent.parent / "projects"
@@ -91,3 +95,98 @@ class ProjectManager:
 
     def get_reporting_path(self) -> Path:
         return self.path / "reporting"
+
+
+def clear_and_rerun_project(
+    project_name: str,
+    projects_root: Optional[Path] = None,
+    timeout_seconds: int = 1800,
+) -> Tuple[str, str]:
+    """
+    Clear generated artifacts for an existing project and rerun the Codex pipeline.
+
+    This helper:
+    - keeps the project folder, research_question.md, and data/ intact,
+    - deletes contents of analysis_scripts/, visualization_scripts/, and reporting/,
+      as well as pipeline_state.txt if present,
+    - then invokes Codex with the same high-level prompt used by run_autoscience.py.
+
+    :param project_name: Name of the project folder under projects/.
+    :param projects_root: Optional custom projects root; defaults to DEFAULT_PROJECTS_ROOT.
+    :param timeout_seconds: Max Codex run time in seconds.
+    :return: (stdout, stderr) from the Codex run.
+    """
+    manager = ProjectManager(project_name, projects_root=projects_root)
+    project_path = manager.ensure()
+
+    # Preserve research question and data; clear generated artifacts.
+    for subdir in ("analysis_scripts", "visualization_scripts", "reporting"):
+        target_dir = project_path / subdir
+        if not target_dir.exists():
+            continue
+        for child in target_dir.iterdir():
+            if child.is_file() or child.is_symlink():
+                # Python <3.8 does not support missing_ok; this codebase targets 3.12.
+                child.unlink(missing_ok=True)  # type: ignore[arg-type]
+            elif child.is_dir():
+                shutil.rmtree(child)
+
+    pipeline_state_path = project_path / PIPELINE_STATE_FILE
+    if pipeline_state_path.exists():
+        pipeline_state_path.unlink()
+
+    # Build a Codex prompt aligned with run_autoscience.build_codex_prompt but kept local
+    # here to avoid CLI interactivity when rerunning programmatically.
+    repo_root = Path(__file__).resolve().parent.parent
+    agents_path = repo_root / "agents"
+    reporting_path = project_path / "reporting"
+    notebook_name = f"{project_name}_reproducable.ipynb"
+
+    prompt = f"""You are an AI research assistant for AutoScience. Your task is to analyze the user's dataset with respect to their research question.
+
+Run scope (must be used consistently for every agent and artifact):
+- Project root: {project_path}
+- Research question: {project_path / "research_question.md"}
+- Data directory: {project_path / "data"}
+- Analysis scripts directory: {project_path / "analysis_scripts"}
+- Visualization scripts directory: {project_path / "visualization_scripts"}
+- Reporting directory: {reporting_path}
+- Agent instruction directory: {agents_path}
+
+Before doing anything else:
+1. Read {agents_path / "orchestrator.md"}.
+2. Read {agents_path / "data_architect.md"}.
+3. Read {agents_path / "variable_selector.md"}.
+4. Read {agents_path / "analyst_and_visualizer.md"}.
+5. Read {agents_path / "scientific_writer.md"}.
+6. Read {project_path / "research_question.md"}.
+
+Pipeline requirements:
+1. Parse and document data in data/. Identify schema and write it under data/.
+2. Run the Variable Selector: review parsed/cleaned data and research question, select relevant variables, write analysis_scripts/selected_variables.md with variable names, descriptions, rationale, and usage examples.
+3. Write and run analysis scripts in analysis_scripts/, using the variables in selected_variables.md. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
+4. Write and run visualization scripts in visualization_scripts/. Produce figures and save them in stable paths.
+5. Write report.md in reporting/.
+6. Create the reproducable notebook in reporting/ with this exact filename:
+   - {notebook_name}
+7. The notebook must include all successful code from analysis_scripts/ and visualization_scripts/.
+8. Interleave markdown and code cells throughout the notebook: every section of code must have adjacent markdown that explains:
+   - what the code is doing,
+   - why this approach was chosen,
+   - and alternative choices that could have been made.
+
+Critical consistency rules:
+- Every path used by every agent must stay under this project root: {project_path}
+- Do not use artifacts from any other project.
+- Keep outputs reproducible with relative paths from project root where possible.
+
+When everything is complete, write <<DONE>>"""
+
+    stdout, stderr = run_codex(
+        prompt,
+        cwd=project_path,
+        timeout_seconds=timeout_seconds,
+        stream=True,
+    )
+    return stdout, stderr
+
