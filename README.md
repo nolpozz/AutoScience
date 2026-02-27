@@ -14,12 +14,9 @@ It creates a dedicated folder per project, keeps all artifacts scoped to that pr
 When you run `run_autoscience.py` with a project name, AutoScience:
 
 1. Creates or reuses `projects/[project_name]/` with standard subfolders.
-2. Prompts for your research question and saves it to:
-   - `projects/[project_name]/research_question.md`
-3. Waits for you to upload data into:
-   - `projects/[project_name]/data/`
-4. Launches Codex from that specific project directory.
-5. Instructs agents to process only that project's files and produce outputs in that same project.
+2. Validates that `research_question.md` is set and `data/` has files.
+3. Launches Codex from that specific project directory.
+4. Instructs agents to process only that project's files and produce outputs in that same project.
 
 The generated notebook is required to be named:
 
@@ -74,16 +71,17 @@ python run_autoscience.py -p my_experiment
 Optional flags:
 
 - `--projects-root /path/to/projects`: choose a custom projects directory
-- `--no-codex`: create structure + question prompt, but skip Codex execution
+- `--clear-and-run`: clear generated artifacts and rerun while keeping `data/` and `research_question.md`
 
 ## Walkthrough
 
 1. Run:
    - `python run_autoscience.py --project my_experiment`
-2. Enter your research question when prompted.
+2. Ensure your research question is in:
+   - `projects/my_experiment/research_question.md`
 3. Put your files (CSV, PDF, etc.) into:
    - `projects/my_experiment/data/`
-4. Press Enter to continue.
+4. Run the command.
 5. AutoScience runs Codex and streams output in your terminal.
 6. Review outputs in:
    - `projects/my_experiment/analysis_scripts/`
@@ -136,41 +134,14 @@ Use a custom projects root:
 python run_autoscience.py -p oncology_study --projects-root /tmp/autoscience_projects
 ```
 
-Scaffold only (no Codex run):
+Clear generated artifacts and rerun:
 
 ```bash
-python run_autoscience.py -p oncology_study --no-codex
+python run_autoscience.py -p oncology_study --clear-and-run
 ```
 
 ## Notes And Troubleshooting
 
 - If you see `codex command not found`, install Codex and ensure it is available on your `PATH`.
-- If no research question is entered, you can edit `projects/[project_name]/research_question.md` manually and rerun.
+- If `research_question.md` is still template/empty, update it and rerun.
 - Rerunning the same project updates existing artifacts rather than creating a new project.
-
-## How To Upload Data
-
-When `run_autoscience.py` pauses and asks you to upload data, copy your files into:
-
-- `projects/[project_name]/data/`
-
-You can do this with either:
-
-- a file explorer (drag and drop), or
-- a terminal command.
-
-Linux/macOS example:
-
-```bash
-cp /path/to/my_data.csv /path/to/AutoScience/projects/my_experiment/data/
-cp /path/to/paper.pdf /path/to/AutoScience/projects/my_experiment/data/
-```
-
-Windows PowerShell example:
-
-```powershell
-Copy-Item "C:\path\to\my_data.csv" "C:\path\to\AutoScience\projects\my_experiment\data\"
-Copy-Item "C:\path\to\paper.pdf" "C:\path\to\AutoScience\projects\my_experiment\data\"
-```
-
-After copying files, return to the script prompt and press Enter to continue.

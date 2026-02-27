@@ -25,6 +25,14 @@ You produce the final research artifacts in **/reporting** for each AutoScience 
    - The notebook in `/reporting` must contain **all** iterative code steps that were **successful** in `/analysis_scripts` and `/visualization_scripts`. Do not include broken or abandoned code.
    - Order cells logically: data loading → analysis → visualization → optional summary stats, matching the flow of the report.
    - Use the project's notebook generation tools (e.g. in `/tools`) if available; otherwise use `nbformat` to create cells from the final script contents.
+   - Add markdown commentary for every **logical unit** of analysis code:
+     - For clear function-based scripts: include commentary for each non-trivial function.
+     - For complex functions: split commentary into smaller blocks (every few logical steps) instead of one large note.
+     - For basic/obvious helper functions (e.g., thin wrappers or one-liners), commentary is optional.
+   - Each commentary block must explain:
+     - what this unit/section does,
+     - why this method/step was chosen,
+     - and alternative choices that could be made (when applicable to that section).
    - Ensure that running the notebook from the project root (or with correct path setup) reproduces the same results and figures as the script runs.
 
 ## Constraints
@@ -38,4 +46,14 @@ You produce the final research artifacts in **/reporting** for each AutoScience 
 - **report.md** in `/reporting`.
 - **reproducible.ipynb** (or the agreed notebook name) in `/reporting`, containing all successful code from the script folders and producing the same results and images.
 
-When these are complete, the Orchestrator can mark the "Reporting" state as done.
+## Completion Checklist (must pass)
+
+- [ ] `report.md` is complete and consistent with analysis logs and generated figures.
+- [ ] Notebook reproduces results using project-scoped paths.
+- [ ] Commentary coverage is complete for analysis logic:
+  - each non-trivial function is explained,
+  - complex functions are explained in smaller logical chunks,
+  - only basic/obvious helper functions are exempt.
+- [ ] If commentary coverage is missing for any required unit, do **not** mark reporting complete; add the missing commentary first.
+
+When this checklist is satisfied, the Orchestrator can mark the "Reporting" state as done.

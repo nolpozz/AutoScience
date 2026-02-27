@@ -9,7 +9,7 @@ Usage:
 1. Creates the project folder structure.
 2. Prompts for your research question and saves it to research_question.md.
 3. Instructs you to upload data to the project's data/ folder.
-4. After you confirm, calls Codex to process the data and run the analysis.
+4. After you confirm, calls Codex to process data, run analysis, and generate reporting artifacts.
 """
 
 import argparse
@@ -21,53 +21,33 @@ _ROOT = Path(__file__).resolve().parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from core.project_manager import ProjectManager
+from core.project_manager import ProjectManager, clear_and_rerun_project
+from core.prompt_builder import build_codex_prompt
 from core.codex_runner import run_codex
 
 
-def build_codex_prompt(project_name: str, project_path: Path) -> str:
-    agents_path = _ROOT / "agents"
-    reporting_path = project_path / "reporting"
-    notebook_name = f"{project_name}_reproducable.ipynb"
-    return f"""You are an AI research assistant for AutoScience. Your task is to analyze the user's dataset with respect to their research question.
+def _validate_ready_for_run(manager: ProjectManager) -> None:
+    rq_path = manager.get_research_question_path()
+    data_path = manager.get_data_path()
 
-Run scope (must be used consistently for every agent and artifact):
-- Project root: {project_path}
-- Research question: {project_path / "research_question.md"}
-- Data directory: {project_path / "data"}
-- Analysis scripts directory: {project_path / "analysis_scripts"}
-- Visualization scripts directory: {project_path / "visualization_scripts"}
-- Reporting directory: {reporting_path}
-- Agent instruction directory: {agents_path}
+    if not rq_path.exists():
+        raise ValueError(f"Missing research question file: {rq_path}")
 
-Before doing anything else:
-1. Read {agents_path / "orchestrator.md"}.
-2. Read {agents_path / "data_architect.md"}.
-3. Read {agents_path / "variable_selector.md"}.
-4. Read {agents_path / "analyst_and_visualizer.md"}.
-5. Read {agents_path / "scientific_writer.md"}.
-6. Read {project_path / "research_question.md"}.
+    rq_text = rq_path.read_text(encoding="utf-8").strip()
+    if not rq_text or "Describe the goal" in rq_text:
+        raise ValueError(
+            "research_question.md is empty or still a template. "
+            "Please set your research question before running Codex."
+        )
 
-Pipeline requirements:
-1. Parse and document data in data/. Identify schema and write it under data/.
-2. Run the Variable Selector: review parsed/cleaned data and research question, select relevant variables, write analysis_scripts/selected_variables.md with variable names, descriptions, rationale, and usage examples.
-3. Write and run analysis scripts in analysis_scripts/, using the variables in selected_variables.md. Fix errors until they run and produce valid results. Log stdout/stderr for the report.
-4. Write and run visualization scripts in visualization_scripts/. Produce figures and save them in stable paths.
-5. Write report.md in reporting/.
-6. Create the reproducable notebook in reporting/ with this exact filename:
-   - {notebook_name}
-7. The notebook must include all successful code from analysis_scripts/ and visualization_scripts/.
-8. Interleave markdown and code cells throughout the notebook: every section of code must have adjacent markdown that explains:
-   - what the code is doing,
-   - why this approach was chosen,
-   - and alternative choices that could have been made.
+    if not data_path.exists():
+        raise ValueError(f"Missing data directory: {data_path}")
 
-Critical consistency rules:
-- Every path used by every agent must stay under this project root: {project_path}
-- Do not use artifacts from any other project.
-- Keep outputs reproducible with relative paths from project root where possible.
-
-When everything is complete, write <<DONE>>"""
+    has_data_files = any(path.is_file() for path in data_path.iterdir())
+    if not has_data_files:
+        raise ValueError(
+            f"No files found in {data_path}. Add dataset files before running Codex."
+        )
 
 
 def parse_args():
@@ -88,15 +68,44 @@ def parse_args():
         help="Root directory for projects (default: AutoScience/projects).",
     )
     parser.add_argument(
-        "--no-codex",
+        "--clear-and-run",
         action="store_true",
-        help="Skip calling Codex (only create structure, prompt for question, and instruct upload).",
+        help=(
+            "Clear generated artifacts (analysis/visualization/reporting + pipeline state) "
+            "while keeping data and research_question.md, then rerun Codex."
+        ),
+    )
+    parser.add_argument(
+        "--clear-and-rerun",
+        action="store_true",
+        help=argparse.SUPPRESS,
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    clear_and_run = args.clear_and_run or args.clear_and_rerun
+
+    if clear_and_run:
+        try:
+            print(f"Clearing generated artifacts and rerunning project: {args.project}")
+            clear_and_rerun_project(
+                project_name=args.project,
+                projects_root=args.projects_root,
+            )
+            print("Clear-and-rerun completed.")
+        except FileNotFoundError:
+            print("Error: 'codex' command not found. Install Codex or ensure it is on your PATH.", file=sys.stderr)
+            sys.exit(1)
+        except subprocess.TimeoutExpired:
+            print("Codex run timed out.", file=sys.stderr)
+            sys.exit(1)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
     try:
         manager = ProjectManager(args.project, projects_root=args.projects_root)
     except ValueError as e:
@@ -127,6 +136,8 @@ def main():
             if question.strip():
                 rq_path.write_text(f"# Research question\n\n{question.strip()}\n", encoding="utf-8")
                 print(f"Saved to projects/{project_name}/research_question.md")
+            else:
+                print("No question entered; keeping existing research question.")
     else:
         question = input(f"Enter your research question for projects/{project_name} (goal and constraints):\n> ")
         if question.strip():
@@ -145,15 +156,13 @@ def main():
     print("---")
     input("Press Enter when you have uploaded your data and want to run the analysis...")
 
-    if args.no_codex:
-        print("Skipping Codex (--no-codex). Run Codex manually with this project as context.")
-        return
+    _validate_ready_for_run(manager)
 
     # Run Codex from the project directory so it sees research_question.md and data/
-    print("Calling Codex to process data and run the analysis...")
+    print("Calling Codex to parse data, select variables, run analysis, generate visualizations, and write reporting artifacts...")
     print("(Output will stream below; this may take several minutes.)")
     print()
-    codex_prompt = build_codex_prompt(project_name=project_name, project_path=path)
+    codex_prompt = build_codex_prompt(project_name=project_name, project_path=path, repo_root=_ROOT)
     try:
         stdout, stderr = run_codex(codex_prompt, cwd=path)
     except FileNotFoundError:
