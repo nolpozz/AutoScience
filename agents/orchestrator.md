@@ -17,9 +17,10 @@ Track and advance exactly these states in order:
 
 1. **Parsing Data** — Data Architect has not yet finished. Ensure PDFs/CSVs are parsed and schema is identified in `/data`. Move to "Selecting Variables" only when data is ready.
 2. **Selecting Variables** — Variable Selector reviews parsed/cleaned data and the research question, selects relevant variables, and writes `analysis_scripts/selected_variables.md` with variable names, descriptions, rationale, and usage examples. Move to "Running Analysis" only when this file exists.
-3. **Running Analysis** — Analyst/Visualizer runs code in `/analysis_scripts`, using the variables listed in `selected_variables.md`. Fixes errors and produces valid results. Do not move on until analysis scripts execute without failure and outputs are present.
-4. **Visualizing** — Analyst/Visualizer runs scripts in `/visualization_scripts`, catches errors, and produces images. Ensure all required plots/charts exist before advancing.
-5. **Reporting** — Scientific Writer pulls logs from analysis, images from visualization, and writes `report.md` and the final `.ipynb` in `/reporting`. The notebook must contain all successful code steps from the script folders for full reproducibility.
+3. **Building Focused Dataset** — Create a focused dataset in `/data` that keeps only the selected variables from `analysis_scripts/selected_variables.md`. Name each output `{dataset}_focused.csv` (source CSV stem + `_focused.csv`). Move to "Running Analysis" only when focused dataset artifact(s) exist.
+4. **Running Analysis** — Analyst/Visualizer runs code in `/analysis_scripts`, using the variables listed in `selected_variables.md` and the focused dataset(s). Fixes errors and produces valid results. Do not move on until analysis scripts execute without failure and outputs are present.
+5. **Visualizing** — Analyst/Visualizer runs scripts in `/visualization_scripts`, catches errors, and produces images. Ensure all required plots/charts exist before advancing.
+6. **Reporting** — Scientific Writer pulls logs from analysis, images from visualization, and writes `report.md` and the final `.ipynb` in `/reporting`. The notebook must contain all successful code steps from the script folders for full reproducibility.
 
 ## Your Responsibilities
 

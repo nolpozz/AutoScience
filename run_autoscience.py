@@ -13,6 +13,8 @@ Usage:
 """
 
 import argparse
+import getpass
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +26,76 @@ if str(_ROOT) not in sys.path:
 from core.project_manager import ProjectManager, clear_and_rerun_project
 from core.prompt_builder import build_codex_prompt
 from core.codex_runner import run_codex
+
+
+def _load_env_file_if_present(env_path: Path) -> None:
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'").strip('"')
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def _save_openai_key_to_env_file(env_path: Path, api_key: str) -> None:
+    lines: list[str] = []
+    if env_path.exists():
+        lines = env_path.read_text(encoding="utf-8").splitlines()
+
+    updated = False
+    output: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("OPENAI_API_KEY="):
+            output.append(f"OPENAI_API_KEY={api_key}")
+            updated = True
+        else:
+            output.append(line)
+    if not updated:
+        output.append(f"OPENAI_API_KEY={api_key}")
+
+    env_path.write_text("\n".join(output) + "\n", encoding="utf-8")
+
+
+def _has_codex_login_session() -> bool:
+    try:
+        result = subprocess.run(
+            ["codex", "login", "status"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        return False
+    return result.returncode == 0
+
+
+def _ensure_openai_api_key() -> None:
+    env_path = _ROOT / ".env"
+    _load_env_file_if_present(env_path)
+
+    if os.getenv("OPENAI_API_KEY", "").strip():
+        return
+    if _has_codex_login_session():
+        return
+
+    print("No OPENAI_API_KEY found and no active `codex login` session detected.")
+    entered = getpass.getpass("Enter your OpenAI API key (input hidden): ").strip()
+    if not entered:
+        raise ValueError(
+            "No API key provided. Cannot continue without OPENAI_API_KEY or codex login session."
+        )
+
+    os.environ["OPENAI_API_KEY"] = entered
+    save = input("Save this key to .env for future runs? [y/N]: ").strip().lower()
+    if save == "y":
+        _save_openai_key_to_env_file(env_path, entered)
+        print(f"Saved OPENAI_API_KEY to {env_path}")
 
 
 def _validate_ready_for_run(manager: ProjectManager) -> None:
@@ -86,6 +158,12 @@ def parse_args():
 def main():
     args = parse_args()
     clear_and_run = args.clear_and_run or args.clear_and_rerun
+
+    try:
+        _ensure_openai_api_key()
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if clear_and_run:
         try:

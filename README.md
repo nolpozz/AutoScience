@@ -14,9 +14,15 @@ It creates a dedicated folder per project, keeps all artifacts scoped to that pr
 When you run `run_autoscience.py` with a project name, AutoScience:
 
 1. Creates or reuses `projects/[project_name]/` with standard subfolders.
-2. Validates that `research_question.md` is set and `data/` has files.
-3. Launches Codex from that specific project directory.
-4. Instructs agents to process only that project's files and produce outputs in that same project.
+2. Checks authentication in this order:
+   - `OPENAI_API_KEY` in environment (loads `.env` if present),
+   - existing `codex login` session,
+   - prompt for key only if both are missing.
+3. Prompts you to confirm or replace `research_question.md`.
+4. Pauses so you can upload files into `data/`.
+5. Validates that `research_question.md` is set and `data/` has files.
+6. Launches Codex from that specific project directory.
+7. Instructs agents to process only that project's files and produce outputs in that same project.
 
 The generated notebook is required to be named:
 
@@ -27,6 +33,19 @@ And it must interleave markdown with code so each code section explains:
 - what the code is doing,
 - why that approach was chosen,
 - and alternative choices that could have been made.
+
+## Workflow Stages
+
+The run is executed as a strict ordered pipeline:
+
+1. Parse and document data in `data/` (including schema artifacts).
+2. Select variables and write `analysis_scripts/selected_variables.md`.
+3. Create focused dataset(s) in `data/` named `{dataset}_focused.csv` with only selected variables.
+4. Run analysis scripts and logs in `analysis_scripts/`.
+5. Run visualization scripts and generate figures in `visualization_scripts/` (or stable reporting paths).
+6. Generate `reporting/report.md` and `reporting/[project_name]_reproducable.ipynb`.
+
+Codex is instructed to finish all stages and required artifacts before marking the run complete.
 
 ## Project Layout
 
@@ -73,17 +92,64 @@ Optional flags:
 - `--projects-root /path/to/projects`: choose a custom projects directory
 - `--clear-and-run`: clear generated artifacts and rerun while keeping `data/` and `research_question.md`
 
+## Codex API Key Setup
+
+You need Codex authentication by either method:
+
+- `OPENAI_API_KEY` in environment / `.env`, or
+- an active `codex login` session
+
+You also need the `codex` CLI installed and available on `PATH`.
+
+Recommended project-local setup (without committing secrets):
+
+1. Create a local env file:
+
+```bash
+cat > .env <<'EOF'
+OPENAI_API_KEY=your_api_key_here
+EOF
+```
+
+2. Ensure `.env` is gitignored (if you use git):
+
+```bash
+echo ".env" >> .gitignore
+```
+
+3. Load it in your current shell before running (helper command):
+
+```bash
+source scripts/load_env.sh
+```
+
+Manual equivalent:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+4. Run AutoScience:
+
+```bash
+python run_autoscience.py -p my_experiment
+```
+
+If you skip shell setup, AutoScience checks `codex login status` first and only prompts for `OPENAI_API_KEY` when no key and no login session are found (with an option to save it to `.env`).
+
 ## Walkthrough
 
 1. Run:
    - `python run_autoscience.py --project my_experiment`
-2. Ensure your research question is in:
-   - `projects/my_experiment/research_question.md`
-3. Put your files (CSV, PDF, etc.) into:
+2. At the prompt, keep or replace the research question.
+3. Upload your files (CSV, PDF, etc.) into:
    - `projects/my_experiment/data/`
-4. Run the command.
+4. Return to the terminal and press Enter when upload is complete.
 5. AutoScience runs Codex and streams output in your terminal.
 6. Review outputs in:
+   - `projects/my_experiment/data/*_focused.csv`
    - `projects/my_experiment/analysis_scripts/`
    - `projects/my_experiment/visualization_scripts/`
    - `projects/my_experiment/reporting/report.md`
@@ -100,6 +166,7 @@ projects/
     ├── data/
     │   ├── raw_data.csv
     │   ├── extracted_tables.csv
+    │   ├── raw_data_focused.csv
     │   ├── schema.md
     │   └── cleaning_log.md
     ├── analysis_scripts/
@@ -143,5 +210,7 @@ python run_autoscience.py -p oncology_study --clear-and-run
 ## Notes And Troubleshooting
 
 - If you see `codex command not found`, install Codex and ensure it is available on your `PATH`.
+- If Codex authentication fails, confirm `OPENAI_API_KEY` is valid. You can load it with `source scripts/load_env.sh` or enter it when prompted at launch.
 - If `research_question.md` is still template/empty, update it and rerun.
+- If `data/` is empty when you continue past the upload prompt, the run will stop and ask you to add files.
 - Rerunning the same project updates existing artifacts rather than creating a new project.

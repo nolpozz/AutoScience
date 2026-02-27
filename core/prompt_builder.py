@@ -46,13 +46,16 @@ Required stage-by-stage execution checklist (must complete in order):
    - Ensure data parsing/inspection artifacts and schema docs exist in data/.
 2) Selecting Variables
    - Write analysis_scripts/selected_variables.md from the research question + schema.
-3) Running Analysis
+3) Build Focused Dataset
+   - Create a focused CSV containing only selected variables.
+   - Name it [dataset_name]_focused.csv (dataset stem + "_focused.csv"), under data/.
+4) Running Analysis
    - Write and execute analysis scripts in analysis_scripts/.
    - Produce analysis outputs and run logs (stdout/stderr).
-4) Visualizing
+5) Visualizing
    - Write and execute visualization scripts in visualization_scripts/.
    - Produce figure outputs in stable paths plus run logs.
-5) Reporting
+6) Reporting
    - Write reporting/report.md.
    - Write reporting/{notebook_name}.
    - Notebook must include successful analysis/visualization code with required commentary coverage.

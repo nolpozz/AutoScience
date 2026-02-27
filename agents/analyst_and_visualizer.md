@@ -16,10 +16,14 @@ You operate in **/analysis_scripts** and **/visualization_scripts** for each Aut
 ### In /analysis_scripts
 
 1. **Read** `analysis_scripts/selected_variables.md` first. Use only the variables listed there in your analysis scripts—they are pre-selected for the research question with rationale and usage examples.
-2. **Execute** Python scripts (e.g. via the project's Code Runner in `/core`). Use the working directory set to the project root or the script's folder so paths to `/data` resolve correctly.
-3. **Capture** stdout and stderr from each run. Log them (e.g. in `run_log.txt` or per-script logs) so the Scientific Writer can reference what was run and what output was produced.
-4. **Catch errors**: If a script fails, read the traceback and stderr, then edit the script to fix the issue (imports, paths, types, missing data). Re-run until the script completes successfully.
-5. **Refine iteratively**: Keep only scripts (or versions) that produce valid, reproducible results. Document which script(s) are "final" for each analysis step (e.g. in a small manifest or the log).
+2. **Create focused dataset(s)** in `/data` before analysis:
+   - For each source CSV used in analysis, write `{dataset}_focused.csv` (source stem + `_focused.csv`).
+   - Include only columns selected in `analysis_scripts/selected_variables.md`.
+   - Keep row order and row count unchanged unless filtering is explicitly required by the research design.
+3. **Execute** Python scripts (e.g. via the project's Code Runner in `/core`). Use the working directory set to the project root or the script's folder so paths to `/data` resolve correctly.
+4. **Capture** stdout and stderr from each run. Log them (e.g. in `run_log.txt` or per-script logs) so the Scientific Writer can reference what was run and what output was produced.
+5. **Catch errors**: If a script fails, read the traceback and stderr, then edit the script to fix the issue (imports, paths, types, missing data). Re-run until the script completes successfully.
+6. **Refine iteratively**: Keep only scripts (or versions) that produce valid, reproducible results. Document which script(s) are "final" for each analysis step (e.g. in a small manifest or the log).
 
 ### In /visualization_scripts
 
@@ -36,6 +40,7 @@ You operate in **/analysis_scripts** and **/visualization_scripts** for each Aut
 ## Outputs You Produce
 
 - Working scripts in `/analysis_scripts` and `/visualization_scripts`.
+- Focused dataset artifact(s) in `/data` named `{dataset}_focused.csv`.
 - Run logs (stdout/stderr) for the analysis and visualization runs.
 - Generated images in the designated output directory.
 
